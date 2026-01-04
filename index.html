@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeafyCheck AI 🍃</title>
+    <style>
+        /* Cute Botanical Aesthetic */
+        :root {
+            --bg-color: #e8f3e8;
+            --card-bg: #ffffff;
+            --primary-green: #4a7c44;
+            --accent-sage: #84a98c;
+            --text-dark: #2d3a2d;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--text-dark);
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        h1 { color: var(--primary-green); margin-bottom: 0.5rem; font-size: 1.8rem; }
+        p { color: var(--accent-sage); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+        /* Camera Box Styling */
+        #webcam-container {
+            margin: 0 auto 1.5rem;
+            border: 8px solid #f0f7f0;
+            border-radius: 20px;
+            overflow: hidden;
+            width: 250px;
+            height: 250px;
+            background-color: #f9fdf9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas { border-radius: 12px; }
+
+        /* Status & Results */
+        #label-container {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-green);
+            background: #f0f7f0;
+            padding: 10px;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            min-height: 30px;
+        }
+
+        /* The Big Launch Button */
+        .start-btn {
+            background-color: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(74, 124, 68, 0.3);
+        }
+
+        .start-btn:hover { background-color: #3d6638; transform: scale(1.05); }
+        .start-btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div style="font-size: 3rem;">🍃</div>
+        <h1>LeafyCheck AI</h1>
+        <p>Give your plant a quick scan!</p>
+        
+        <div id="webcam-container">
+            <span style="color: #ccc;">Camera Offline</span>
+        </div>
+
+        <div id="label-container">Ready to scan?</div>
+
+        <button class="start-btn" onclick="init()">Click Launch to Start 👆</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+    <script type="text/javascript">
+        // 1. PASTE YOUR TEACHABLE MACHINE LINK HERE
+        const URL = "https://teachablemachine.withgoogle.com/models/";
+
+        let model, webcam, labelContainer, maxPredictions;
+
+        async function init() {
+            const container = document.getElementById("label-container");
+            container.innerHTML = "✨ Waking up the AI...";
+
+            try {
+                const modelURL = URL + "model.json";
+                const metadataURL = URL + "metadata.json";
+
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+
+                // Setup webcam
+                const flip = true;
+                webcam = new tmImage.Webcam(250, 250, flip);
+                await webcam.setup();
+                await webcam.play();
+                window.requestAnimationFrame(loop);
+
+                // Clean container and add camera
+                document.getElementById("webcam-container").innerHTML = "";
+                document.getElementById("webcam-container").appendChild(webcam.canvas);
+                container.innerHTML = "Scanning Plant... 🌿";
+            } catch (err) {
+                container.innerHTML = "❌ Error: Check Permissions";
+                console.error(err);
+            }
+        }
+
+        async function loop() {
+            webcam.update();
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
+
+        async function predict() {
+            const prediction = await model.predict(webcam.canvas);
+            let topClass = "";
+            let highestProb = 0;
+
+            for (let i = 0; i < maxPredictions; i++) {
+                if (prediction[i].probability > highestProb) {
+                    highestProb = prediction[i].probability;
+                    topClass = prediction[i].className;
+                }
+            }
+
+            // Custom Cute Messages
+            if (topClass === "Happy") {
+                labelContainer.innerHTML = "✨ Happy Plant!";
+            } else if (topClass === "Thirsty") {
+                labelContainer.innerHTML = "🥀 Thirsty Pal! Needs water!";
+            } else {
+                labelContainer.innerHTML = "Searching for leaves...";
+            }
+        }
+        
+        labelContainer = document.getElementById("label-container");
+    </script>
+</body>
+</html>
